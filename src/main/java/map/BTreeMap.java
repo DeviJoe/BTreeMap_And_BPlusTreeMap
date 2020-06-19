@@ -1,3 +1,7 @@
+package map;
+
+import TreantGenerator.iTreeMapGenerator.TreeTreantNode;
+
 import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +19,7 @@ import java.util.Map;
  * @param <K> Тип ключа
  * @param <V> Тип значения
  */
-public final class BTreeMap<K extends Comparable<? super K>, V> {
+public final class BTreeMap<K extends Comparable<? super K>, V> implements IMap {
 
     /* ПОЛЯ */
     /**
@@ -35,6 +39,10 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
 
     private Node<K> root;
 
+    /**
+     * Класс, описывающий структуру узла дерева и реализующий функционал для работы с ним
+     * @param <K> ключ
+     */
     private class Node<K extends Comparable<? super K>> {
 
         /**
@@ -66,6 +74,72 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
         boolean isLeaf() {
             return children == null;
         }
+
+        /**
+         * Разделение узла
+         * @param i
+         */
+        private void split(int i) {
+            Node<K> z = new Node<>();
+            Node<K> y = children[i];
+
+            if (!y.isLeaf()) {
+                z.makeInternal();
+            }
+
+            z.size = treeDegree - 1;
+
+            for (int j = 0; j < treeDegree - 1; ++j) {
+                z.keys[j] = y.keys[j + treeDegree];
+                y.keys[j + treeDegree] = null;
+            }
+
+            if (!y.isLeaf()) {
+                for (int j = 0; j < treeDegree; ++j) {
+                    z.children[j] = y.children[j + treeDegree];
+                    y.children[j + treeDegree] = null;
+                }
+            }
+
+            int oldSizeOfY = y.size;
+            y.size = treeDegree - 1;
+            K pushUpKey = y.keys[treeDegree - 1];
+
+            for (int j = y.size; j < oldSizeOfY; ++j) {
+                y.keys[j] = null;
+            }
+
+            for (int j = size; j >= i; --j) {
+                children[j + 1] = children[j];
+            }
+
+            children[i + 1] = z;
+
+            for (int j = size - 1; j >= i; --j) {
+                keys[j + 1] = keys[j];
+            }
+
+            keys[i] = pushUpKey;
+            size++;
+        }
+
+        private void removeFromLeaf(int removedKeyIndex) {
+            for (int i = removedKeyIndex + 1; i < size; ++i) {
+                keys[i - 1] = keys[i];
+            }
+
+            keys[--size] = null;
+        }
+
+        private <K extends Comparable<? super K>> int findKeyIndex(K key) {
+            for (int i = 0; i != size; ++i) {
+                if (keys[i].equals(key)) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
     }
 
     /**
@@ -78,7 +152,7 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
 
     /**
      * Конструктор дерева с пользовательской степенью дерева
-     * @param treeDegree
+     * @param treeDegree степень дерева
      */
     public BTreeMap(int treeDegree) {
         this.treeDegree = treeDegree;
@@ -97,12 +171,13 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
             root = node;
             node.makeInternal();
             node.children[0] = r;
-            bTreeSplitChild(node, 0);
+            node.split(0);
             bTreeInsertNonFull(node, key);
         } else {
             bTreeInsertNonFull(r, key);
         }
     }
+
 
     private void bTreeInsertNonFull(Node<K> x, K k) {
         int i = x.size - 1;
@@ -113,7 +188,7 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
                 i--;
             }
 
-            x.keys[i + 1] = k; // ?
+            x.keys[i + 1] = k;
             x.size++;
         } else {
             while (i >= 0 && k.compareTo(x.keys[i]) < 0) {
@@ -123,7 +198,7 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
             i++;
 
             if (x.children[i].size == 2 * treeDegree - 1) {
-                bTreeSplitChild(x, i);
+                x.split(i);
 
                 if (k.compareTo(x.keys[i]) > 0) {
                     i++;
@@ -135,87 +210,59 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
     }
 
     /**
-     * Разделение узла
-     * @param node
-     * @param i
-     */
-    private void bTreeSplitChild(Node<K> node, int i) {
-        Node<K> z = new Node<>();
-        Node<K> y = node.children[i];
-
-        if (!y.isLeaf()) {
-            z.makeInternal();
-        }
-
-        z.size = treeDegree - 1;
-
-        for (int j = 0; j < treeDegree - 1; ++j) {
-            z.keys[j] = y.keys[j + treeDegree];
-            y.keys[j + treeDegree] = null;
-        }
-
-        if (!y.isLeaf()) {
-            for (int j = 0; j < treeDegree; ++j) {
-                z.children[j] = y.children[j + treeDegree];
-                y.children[j + treeDegree] = null;
-            }
-        }
-
-        int oldSizeOfY = y.size;
-        y.size = treeDegree - 1;
-        K pushUpKey = y.keys[treeDegree - 1];
-
-        for (int j = y.size; j < oldSizeOfY; ++j) {
-            y.keys[j] = null;
-        }
-
-        for (int j = node.size; j >= i; --j) {
-            node.children[j + 1] = node.children[j];
-        }
-
-        node.children[i + 1] = z;
-
-        for (int j = node.size - 1; j >= i; --j) {
-            node.keys[j + 1] = node.keys[j];
-        }
-
-        node.keys[i] = pushUpKey;
-        node.size++;
-    }
-
-    /**
      * Метод возвращает кол-во пар "ключ-значение" в структуре
      * @return
      */
+    @Override
     public int size() {
         return map.size();
     }
 
     /**
-     * Метод про
-     * @return
+     * Метод проверки структуры на пустоту
+     * @return true/false
      */
+    @Override
     public boolean isEmpty() {
         return map.isEmpty();
     }
 
-    public V get(K key) {
+    /**
+     * Метод возвращает значение по ключу
+     * @param key ключ
+     * @return значение
+     */
+    @Override
+    public V get(Comparable key) {
         return map.get(key);
     }
 
-    public V put(K key, V value) {
+    /**
+     * Размещение в структуре дерева пары "ключ-значение"
+     * @param key ключ
+     * @param value значение
+     * @return
+     */
+    @Override
+    public V put(Comparable key, Object value) {
 
         if (map.containsKey(key)) {
-            return map.put(key, value);
+            return map.put((K)key, (V)value);
         }
 
-        bTreeInsertKey(key);
-        map.put(key, value);
+        bTreeInsertKey((K)key);
+        map.put((K)key, (V)value);
         return null;
     }
 
-    public V remove(Object key) {
-        if (map.containsKey((K) key)) {
+    /**
+     * Удаление из структуры пары "ключ-значение"
+     * @param key ключ
+     * @return удаленное значение
+     */
+    @Override
+    public V remove(Comparable key) {
+        if (map.containsKey( key)) {
             bTreeDeleteKey(root, (K) key);
             return map.remove(key);
         }
@@ -223,22 +270,9 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
         return null;
     }
 
-    private <K extends Comparable<? super K>> int findKeyIndex(Node<K> x, K key) {
-        for (int i = 0; i != x.size; ++i) {
-            if (x.keys[i].compareTo(key) == 0) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-    private void removeFromLeafNode(Node<K> x, int removedKeyIndex) {
-        for (int i = removedKeyIndex + 1; i < x.size; ++i) {
-            x.keys[i - 1] = x.keys[i];
-        }
-
-        x.keys[--x.size] = null;
+    @Override
+    public void clear() {
+        root = null;
     }
 
     private  <K extends Comparable<? super K>> Node<K> getMinimumNode(Node<K> x) {
@@ -258,11 +292,11 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
     }
 
     private void bTreeDeleteKey(Node<K> node, K key) {
-        int keyIndex = findKeyIndex(node, key);
+        int keyIndex = node.findKeyIndex(key);
 
         if (keyIndex >= 0) {
             if (node.isLeaf()) {
-                removeFromLeafNode(node, keyIndex);
+                node.removeFromLeaf(keyIndex);
                 return;
             }
 
@@ -388,8 +422,6 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
                         K keyToPushDown = node.keys[childIndex];
                         node.keys[childIndex] = firstRightSiblingKey;
 
-                        // Shift all the stuff in the right sibling one step to
-                        // the left:
                         for (int i = 1; i < rightSibling.size; ++i) {
                             rightSibling.keys[i - 1] = rightSibling.keys[i];
                         }
@@ -539,4 +571,36 @@ public final class BTreeMap<K extends Comparable<? super K>, V> {
             bTreeDeleteKey(targetChild, key);
         }
     }
+
+    private TreeTreantNode _toTreantTree(Node<K> pointer) {
+        TreeTreantNode node = new TreeTreantNode();
+
+        if (pointer.keys != null && pointer != null) {
+            node.nodeView = keysToString(pointer.keys);
+        }
+
+        if (pointer.children != null && pointer != null) {
+            for (int i = 0; i < pointer.children.length; i++) {
+                if (pointer.children[i] != null) {
+                    node.nodes.add(_toTreantTree(pointer.children[i]));
+                }
+            }
+        }
+        if (pointer == null) return null;
+        return node;
+    }
+
+    public TreeTreantNode toTreantNode() {
+        return _toTreantTree(root);
+    }
+
+    private String keysToString(K[] keys) {
+        String s = new String();
+        for (int i = 0; i < keys.length; i++) {
+            if (keys[i] == null) continue;
+            s += keys[i].toString() + " ==> " + get(keys[i]) + " <br> ";
+        }
+        return s;
+    }
+
 }

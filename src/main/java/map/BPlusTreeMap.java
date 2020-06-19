@@ -1,3 +1,7 @@
+package map;
+
+import TreantGenerator.iTreeMapGenerator.TreeTreantNode;
+
 import java.util.*;
 
 /**
@@ -12,7 +16,7 @@ import java.util.*;
  * @param <K> Тип ключа
  * @param <V> Тип значения
  */
-public class BPlusTreeMap<K extends Comparable<? super K>, V>  {
+public class BPlusTreeMap<K extends Comparable<? super K>, V> implements IMap {
 
     /**
      * Степень дерева
@@ -37,7 +41,7 @@ public class BPlusTreeMap<K extends Comparable<? super K>, V>  {
      * Конструктор по умолчанию
      */
     public BPlusTreeMap() {
-        treeDegree = DEFAULT_TREE_DEGREE;
+        this(DEFAULT_TREE_DEGREE);
     }
 
     /**
@@ -60,7 +64,7 @@ public class BPlusTreeMap<K extends Comparable<? super K>, V>  {
      */
     private abstract class Node {
         List<K> keys;
-
+        List<Node> children;
         /**
          * Возвращает количетсво ключей
          */
@@ -124,7 +128,7 @@ public class BPlusTreeMap<K extends Comparable<? super K>, V>  {
      */
     private class InternalNode extends Node {
 
-        List<Node> children;
+
 
         InternalNode() {
             this.keys = new ArrayList<>();
@@ -377,8 +381,8 @@ public class BPlusTreeMap<K extends Comparable<? super K>, V>  {
      * @param key ключ
      * @return найденное значение
      */
-    public V get(K key) {
-        return root.getValue(key);
+    public V get(Comparable key) {
+        return root.getValue((K)key);
     }
 
     /**
@@ -386,17 +390,20 @@ public class BPlusTreeMap<K extends Comparable<? super K>, V>  {
      * @param key ключ
      * @param value значение
      */
-    public void put(K key, V value) {
-        root.putValue(key, value);
+    public V put(Comparable key, Object value) {
+        root.putValue((K)key, (V)value);
         size++;
+        return (V) value;
     }
 
     /**
      * Производит удаление пары ключ-значение по заданному ключу
      * @param key ключ
      */
-    public void remove(K key) {
-        root.removeValue(key);
+    public V remove(Comparable key) {
+        V val = get((key));
+        root.removeValue((K)key);
+        return val;
     }
 
     /**
@@ -420,5 +427,37 @@ public class BPlusTreeMap<K extends Comparable<? super K>, V>  {
      */
     public boolean isEmpty() {
         return size == 0;
+    }
+
+
+    private TreeTreantNode _toTreantTree(Node pointer) {
+        TreeTreantNode node = new TreeTreantNode();
+
+        if (pointer.keys != null && pointer != null) {
+            node.nodeView = keysToString(pointer.keys);
+        }
+
+        if (pointer != null && pointer.children != null) {
+            for (int i = 0; i < pointer.children.size(); i++) {
+                if (pointer.children.get(i) != null) {
+                    node.nodes.add(_toTreantTree(pointer.children.get(i)));
+                }
+            }
+        }
+        if (pointer == null) return null;
+        return node;
+    }
+
+    public TreeTreantNode toTreantNode() {
+        return _toTreantTree(root);
+    }
+
+    private String keysToString(List<K> keys) {
+        String s = new String();
+        for (int i = 0; i < keys.size(); i++) {
+            if (keys.get(i) == null) continue;
+            s += keys.get(i).toString() + " ==> " + get(keys.get(i)) + " <br> ";
+        }
+        return s;
     }
 }

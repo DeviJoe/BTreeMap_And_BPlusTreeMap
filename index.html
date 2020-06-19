@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualisation</title>
+
+    <!-- stylesheets -->
+    <link rel="stylesheet" href="treant-js-master/Treant.css" type="text/css"/>
+</head>
+
+<!-- javascript -->
+<script src="treant-js-master/vendor/raphael.js"></script>
+<script src="treant-js-master/Treant.js"></script>
+<script src="bTree.js"></script>
+<script src="bPlusTree.js"></script>
+
+<!-- B tree generation -->
+<h1 align="center">B-tree visualisation (key distribution)</h1>
+<div class="chart" id="bTreeMap">
+</div>
+
+<br>
+
+<!-- B+ tree generation -->
+<h1 align="center">B+ Tree visualisation (key distribution)</h1>
+<div class="chart" id="bPlusTreeMap"></div>
+
+<script>
+    new Treant(tree1);
+    new Treant(tree2)
+</script>
+</body>
+</html>
